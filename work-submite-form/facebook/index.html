@@ -373,11 +373,27 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
-    // URL থেকে ইউজার ডেটা পড়ার ফাংশন
+    // URL থেকে ইউজার ডেটা পড়ার ফাংশন - উন্নত সংস্করণ
     function getUserFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
       const userStr = urlParams.get("user");
-      return userStr ? JSON.parse(decodeURIComponent(userStr)) : null;
+      
+      if (!userStr) return null;
+      
+      try {
+          return JSON.parse(decodeURIComponent(userStr));
+      } catch (error) {
+          console.error("Error parsing user data:", error);
+          
+          // পুরানো ফরম্যাট সাপোর্ট করার জন্য (শুধু ইউজারনেম)
+          if (userStr.startsWith('@')) {
+              return { username: userStr };
+          } else if (!userStr.includes('{')) {
+              return { username: '@' + userStr };
+          }
+          
+          return null;
+      }
     }
 
     // Firebase-এ ডেটা সেভ করার ফাংশন
@@ -387,15 +403,25 @@
       return newSubmissionRef.set(formData);
     }
 
-    // DOM লোড হলে ইউজার ডেটা অটো-ফিল করুন
+    // DOM লোড হলে ইউজার ডেটা অটো-ফিল করুন - উন্নত সংস্করণ
     document.addEventListener('DOMContentLoaded', function() {
       const user = getUserFromURL();
+      console.log("User data from URL:", user); // ডিবাগ করার জন্য
+      
       if (user) {
-        document.getElementById('tg-username').value = user.username || '';
-        document.getElementById('tg-chat-id').value = user.chatId || '';
-        
-        // ইউজার ডেটা গ্লোবাল ভেরিয়েবলে সেভ করুন (সাকসেস পেজে পাঠানোর জন্য)
-        window.userData = user;
+          document.getElementById('tg-username').value = user.username || '';
+          
+          // Telegram user id থাকলে সেট chat id তে বসান
+          if (user.id) {
+              document.getElementById('tg-chat-id').value = user.id;
+          }
+          
+          // ইউজার ডেটা গ্লোবাল ভেরিয়েবলে সেভ করুন
+          window.userData = user;
+      } else {
+          console.log("No user data found in URL");
+          // ডিফল্ট ভ্যালু বা error handling
+          document.getElementById('tg-username').value = '@username';
       }
     });
 
@@ -615,7 +641,7 @@
           .then(async (response) => {
               const result = await response.json();
               
-              if (response.ok) {
+              if (response.status >= 200 && response.status < 300) {
                   sendReadyMadeMessageToUser(tgChatId);
                   
                   // সিলেকশন অনুযায়ী রিডাইরেক্ট URL নির্ধারণ
@@ -633,10 +659,10 @@
 
                   // সাকসেস পেজে শুধুমাত্র প্রয়োজনীয় ইউজার ডেটা পাঠানো
                   const successData = {
-                    profilePicture: window.userData?.profilePicture || "",
-                    userName: window.userData?.name || "",
-                    userUsername: tgUsername,
-                    chatId: tgChatId
+                    profilePicture: window.userData?.photo_url || "",
+                    userName: (window.userData?.first_name || "") + " " + (window.userData?.last_name || ""),
+                    userUsername: window.userData?.username || tgUsername,
+                    chatId: window.userData?.id || tgChatId
                   };
 
                   const encodedData = encodeURIComponent(JSON.stringify(successData));
@@ -720,4 +746,4 @@
     });
   </script>
 </body>
-</html>
+  </html>

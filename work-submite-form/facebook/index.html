@@ -367,7 +367,7 @@
   projectId: "fbm-market-bot",
   storageBucket: "fbm-market-bot.firebasestorage.app",
   messagingSenderId: "711610016805",
-  appId: "1:711610016805:web:c5a019c9af1485ac984bcc" 
+  appId: "1:711610016805:web:c5a019c9af1485ac984bcc"
     };
 
     // Initialize Firebase
@@ -393,6 +393,9 @@
       if (user) {
         document.getElementById('tg-username').value = user.username || '';
         document.getElementById('tg-chat-id').value = user.chatId || '';
+        
+        // ইউজার ডেটা গ্লোবাল ভেরিয়েবলে সেভ করুন (সাকসেস পেজে পাঠানোর জন্য)
+        window.userData = user;
       }
     });
 
@@ -585,7 +588,7 @@
       const submitBtn = document.getElementById("submit-btn");
       submitBtn.disabled = true;
 
-      // Firebase-এ ডেটা সেভ করার জন্য প্রস্তুত
+      // Firebase-এ ডেটা সেভ করার জন্য প্রস্তুত - সমস্ত ডেটা সেভ হবে
       const formData = {
         accountType: accountType,
         mailBox: mailBox,
@@ -599,7 +602,7 @@
         timestamp: new Date().getTime()
       };
 
-      // Firebase-এ ডেটা সেভ করুন
+      // Firebase-এ সমস্ত ডেটা সেভ করুন (এডমিন ড্যাশবোর্ডের জন্য)
       saveToFirebase(formData)
         .then(() => {
           console.log("Data saved to Firebase successfully");
@@ -628,14 +631,12 @@
                       redirectPage = "success/fb-success-10fd.html";
                   }
 
-                  // সাকসেস পেজে ডেটা পাঠানো
+                  // সাকসেস পেজে শুধুমাত্র প্রয়োজনীয় ইউজার ডেটা পাঠানো
                   const successData = {
-                    username: tgUsername,
-                    chatId: tgChatId,
-                    accountType: accountType,
-                    cookieType: cookie2fa,
-                    friendType: fdType,
-                    submissionTime: currentDate
+                    profilePicture: window.userData?.profilePicture || "",
+                    userName: window.userData?.name || "",
+                    userUsername: tgUsername,
+                    chatId: tgChatId
                   };
 
                   const encodedData = encodeURIComponent(JSON.stringify(successData));

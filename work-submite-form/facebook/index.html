@@ -362,37 +362,33 @@
   <script>
     // Firebase configuration - replace with your actual config
     const firebaseConfig = {
-  apiKey: "AIzaSyCs6ePkTxvMjcERh6yAdvjPqxIu6X7jhRM",
-  authDomain: "fbm-market-bot.firebaseapp.com",
-  projectId: "fbm-market-bot",
-  storageBucket: "fbm-market-bot.firebasestorage.app",
-  messagingSenderId: "711610016805",
-  appId: "1:711610016805:web:c5a019c9af1485ac984bcc"
+      apiKey: "AIzaSyCs6ePkTxvMjcERh6yAdvjPqxIu6X7jhRM",
+      authDomain: "fbm-market-bot.firebaseapp.com",
+      projectId: "fbm-market-bot",
+      storageBucket: "fbm-market-bot.firebasestorage.app",
+      messagingSenderId: "711610016805",
+      appId: "1:711610016805:web:c5a019c9af1485ac984bcc"
     };
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
-    // URL থেকে ইউজার ডেটা পড়ার ফাংশন - উন্নত সংস্করণ
+    // URL থেকে ইউজার ডেটা পড়ার ফাংশন
     function getUserFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
       const userStr = urlParams.get("user");
       
-      if (!userStr) return null;
+      if (!userStr) {
+        console.log("No user data found in URL");
+        return null;
+      }
       
       try {
-          return JSON.parse(decodeURIComponent(userStr));
+        // URL decode এবং JSON parse করুন
+        return JSON.parse(decodeURIComponent(userStr));
       } catch (error) {
-          console.error("Error parsing user data:", error);
-          
-          // পুরানো ফরম্যাট সাপোর্ট করার জন্য (শুধু ইউজারনেম)
-          if (userStr.startsWith('@')) {
-              return { username: userStr };
-          } else if (!userStr.includes('{')) {
-              return { username: '@' + userStr };
-          }
-          
-          return null;
+        console.error("Error parsing user data:", error);
+        return null;
       }
     }
 
@@ -403,25 +399,23 @@
       return newSubmissionRef.set(formData);
     }
 
-    // DOM লোড হলে ইউজার ডেটা অটো-ফিল করুন - উন্নত সংস্করণ
+    // DOM লোড হলে ইউজার ডেটা অটো-ফিল করুন
     document.addEventListener('DOMContentLoaded', function() {
       const user = getUserFromURL();
-      console.log("User data from URL:", user); // ডিবাগ করার জন্য
       
       if (user) {
-          document.getElementById('tg-username').value = user.username || '';
-          
-          // Telegram user id থাকলে সেট chat id তে বসান
-          if (user.id) {
-              document.getElementById('tg-chat-id').value = user.id;
-          }
-          
-          // ইউজার ডেটা গ্লোবাল ভেরিয়েবলে সেভ করুন
-          window.userData = user;
+        // username সেট করুন
+        document.getElementById('tg-username').value = user.username ? '@' + user.username : '';
+        
+        // user ID (chat ID) সেট করুন
+        document.getElementById('tg-chat-id').value = user.id || '';
+        
+        // ইউজার ডেটা গ্লোবাল ভেরিয়েবলে সেভ করুন
+        window.userData = user;
       } else {
-          console.log("No user data found in URL");
-          // ডিফল্ট ভ্যালু বা error handling
-          document.getElementById('tg-username').value = '@username';
+        // Fallback যদি user data না পাওয়া যায়
+        document.getElementById('tg-username').value = '@username';
+        document.getElementById('tg-chat-id').value = '';
       }
     });
 
@@ -625,7 +619,10 @@
         tgChatId: tgChatId,
         googleSheet: googleSheet,
         submissionTime: currentDate,
-        timestamp: new Date().getTime()
+        timestamp: new Date().getTime(),
+        // Telegram user data ও সেভ করুন
+        telegramUserId: window.userData?.id || '',
+        telegramUsername: window.userData?.username || ''
       };
 
       // Firebase-এ সমস্ত ডেটা সেভ করুন (এডমিন ড্যাশবোর্ডের জন্য)
@@ -661,7 +658,7 @@
                   const successData = {
                     profilePicture: window.userData?.photo_url || "",
                     userName: (window.userData?.first_name || "") + " " + (window.userData?.last_name || ""),
-                    userUsername: window.userData?.username || tgUsername,
+                    userUsername: window.userData?.username ? '@' + window.userData.username : '',
                     chatId: window.userData?.id || tgChatId
                   };
 
@@ -746,4 +743,4 @@
     });
   </script>
 </body>
-  </html>
+</html>

@@ -7,6 +7,7 @@
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
       --primary: #4361ee;
@@ -644,40 +645,70 @@
     // Telegram WebApp integration for user data
     function initTelegramUserData() {
       // Check if Telegram WebApp API is available
-      if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-        const user = Telegram.WebApp.initDataUnsafe.user;
-        
-        if (user) {
-          // Update profile picture
-          if (user.photo_url) {
-            document.getElementById('profilePicture').src = user.photo_url;
+      if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        try {
+          console.log("Telegram WebApp initialized");
+          const tg = window.Telegram.WebApp;
+          
+          // Expand the WebApp to full height
+          tg.expand();
+          
+          // Enable closing confirmation
+          tg.enableClosingConfirmation();
+          
+          // Get user data
+          const user = tg.initDataUnsafe.user;
+          
+          if (user) {
+            console.log("User data:", user);
+            
+            // Update profile picture
+            if (user.photo_url) {
+              document.getElementById('profilePicture').src = user.photo_url;
+            }
+            
+            // Update user name
+            let fullName = '';
+            if (user.first_name) fullName += user.first_name;
+            if (user.last_name) fullName += ' ' + user.last_name;
+            if (fullName.trim() !== '') {
+              document.getElementById('userName').textContent = fullName.trim();
+            } else {
+              document.getElementById('userName').textContent = 'Telegram User';
+            }
+            
+            // Update username
+            if (user.username) {
+              document.getElementById('userUsername').textContent = '@' + user.username;
+            } else {
+              document.getElementById('userUsername').textContent = 'Telegram User';
+            }
+          } else {
+            console.log("No user data available");
+            document.getElementById('userName').textContent = 'Telegram User';
+            document.getElementById('userUsername').textContent = 'User';
           }
           
-          // Update user name
-          let fullName = '';
-          if (user.first_name) fullName += user.first_name;
-          if (user.last_name) fullName += ' ' + user.last_name;
-          if (fullName.trim() !== '') {
-            document.getElementById('userName').textContent = fullName.trim();
-          }
+          // Set theme changed event
+          tg.onEvent('themeChanged', function() {
+            document.body.setAttribute('data-theme', tg.colorScheme);
+          });
           
-          // Update username
-          if (user.username) {
-            document.getElementById('userUsername').textContent = '@' + user.username;
-          }
-        } else {
-          // Fallback if user data is not available
-          document.getElementById('userName').textContent = 'Telegram User';
-          document.getElementById('userUsername').textContent = '@telegram_user';
+          // Set viewport changed event
+          tg.onEvent('viewportChanged', function() {
+            tg.expand();
+          });
+          
+        } catch (error) {
+          console.error("Error initializing Telegram WebApp:", error);
+          document.getElementById('userName').textContent = 'Error Loading';
+          document.getElementById('userUsername').textContent = 'Please try again';
         }
-        
-        // Expand the WebApp to full height
-        Telegram.WebApp.expand();
       } else {
         // Fallback for testing outside Telegram
         console.log("Telegram WebApp API not detected. Using mock data.");
-        document.getElementById('userName').textContent = 'John Doe';
-        document.getElementById('userUsername').textContent = '@johndoe';
+        document.getElementById('userName').textContent = 'Demo User';
+        document.getElementById('userUsername').textContent = '@demo_user';
       }
     }
 

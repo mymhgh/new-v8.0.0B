@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>FBM Loading</title>
-  <!-- Firebase App (core Firebase SDK) -->
+  <!-- Firebase SDK যোগ করুন -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <!-- Firebase Firestore -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <style>
-    /* আপনার existing CSS styles এখানে থাকবে */
     body {
       margin: 0;
       padding: 0;
@@ -120,6 +118,16 @@
         opacity: 1;
       }
     }
+
+    .error-message {
+      color: #ff4444;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -144,22 +152,37 @@
       </div>
     </div>
   </div>
+  <div class="error-message" id="errorMessage"></div>
 </div>
 
 <script>
-  // Firebase configuration - আপনার নিজের config এখানে বসাবেন
-    const firebaseConfig = {
-      apiKey: "AIzaSyCs6ePkTxvMjcERh6yAdvjPqxIu6X7jhRM",
-      authDomain: "fbm-market-bot.firebaseapp.com",
-      projectId: "fbm-market-bot",
-      storageBucket: "fbm-market-bot.firebasestorage.app",
-      messagingSenderId: "711610016805",
-      appId: "1:711610016805:web:c5a019c9af1485ac984bcc"
-    };
+  // Firebase configuration - আপনার প্রকৃত config দিয়ে replace করুন
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
   // Firebase initialize
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  let db;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    console.log("Firebase initialized successfully");
+  } catch (error) {
+    console.error("Firebase initialization error:", error);
+    showError("Database connection failed. Please try again.");
+  }
+
+  // Error message show করার function
+  function showError(message) {
+    const errorElement = document.getElementById('errorMessage');
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+  }
 
   // Telegram user data process function
   async function processTelegramUser() {
@@ -170,7 +193,7 @@
         const user = tg.initDataUnsafe.user;
 
         if (user) {
-          console.log("Telegram user data:", user);
+          console.log("Telegram user data found:", user);
 
           // Prepare user data for database
           const userData = {
@@ -186,50 +209,59 @@
             created_at: firebase.firestore.FieldValue.serverTimestamp()
           };
 
-          // Check if user already exists in database
-          const userDoc = await db.collection('users').doc(user.id.toString()).get();
-          
-          if (userDoc.exists) {
-            // Update existing user
-            await db.collection('users').doc(user.id.toString()).update({
-              ...userData,
-              updated_at: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log("User profile updated in database");
-          } else {
-            // Create new user
-            await db.collection('users').doc(user.id.toString()).set(userData);
-            console.log("New user profile created in database");
+          // Firebase operation (যদি Firebase available থাকে)
+          if (db) {
+            try {
+              // Check if user already exists in database
+              const userDoc = await db.collection('users').doc(user.id.toString()).get();
+              
+              if (userDoc.exists) {
+                // Update existing user
+                await db.collection('users').doc(user.id.toString()).update({
+                  ...userData,
+                  updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("User profile updated in database");
+              } else {
+                // Create new user
+                await db.collection('users').doc(user.id.toString()).set(userData);
+                console.log("New user profile created in database");
+              }
+            } catch (firebaseError) {
+              console.error("Firebase operation error:", firebaseError);
+              // Firebase error হলেও continue করবে, শুধু log করবে
+            }
           }
 
           // Encode user data for URL parameter
           const encodedUser = encodeURIComponent(JSON.stringify(userData));
           
           // Redirect to main page with user data
-          setTimeout(function() {
-            window.location.href = `ws-main-page.html?user=${encodedUser}`;
-          }, 2700);
+          window.location.href = `ws-main-page.html?user=${encodedUser}`;
 
         } else {
           console.error("No user data available from Telegram");
-          // Fallback redirect without user data
-          setTimeout(function() {
+          showError("User data not found. Please try again.");
+          // ৫ সেকেন্ড পর fallback redirect
+          setTimeout(() => {
             window.location.href = "ws-main-page.html";
-          }, 2700);
+          }, 5000);
         }
       } else {
         console.error("Telegram WebApp API not detected");
-        // Fallback for testing outside Telegram
-        setTimeout(function() {
+        showError("Please open this page from Telegram.");
+        // ৫ সেকেন্ড পর fallback redirect
+        setTimeout(() => {
           window.location.href = "ws-main-page.html";
-        }, 2700);
+        }, 5000);
       }
     } catch (error) {
       console.error("Error processing Telegram user:", error);
+      showError("An error occurred. Redirecting...");
       // Error fallback redirect
-      setTimeout(function() {
+      setTimeout(() => {
         window.location.href = "ws-main-page.html";
-      }, 2700);
+      }, 3000);
     }
   }
 
@@ -241,8 +273,8 @@
       window.Telegram.WebApp.enableClosingConfirmation();
     }
     
-    // Process Telegram user data
-    processTelegramUser();
+    // Process Telegram user data after short delay
+    setTimeout(processTelegramUser, 1000);
   });
 </script>
 

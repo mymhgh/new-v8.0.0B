@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FBM Loading</title>
+  <!-- Firebase App (core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <!-- Firebase Firestore -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <style>
+    /* আপনার existing CSS styles এখানে থাকবে */
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: url('mp-bg-img/sp.jpg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .loader {
+      margin-bottom: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 5px;
+      backdrop-filter: blur(3px);
+    }
+
+    .loading-text {
+      color: white;
+      font-size: 14pt;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .dot {
+      margin-left: 3px;
+      animation: blink 1.5s infinite;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: 0.3s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+
+    .loading-bar-background {
+      --height: 30px;
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+      padding: 5px;
+      width: 200px;
+      height: var(--height);
+      background-color: #212121;
+      box-shadow: #0c0c0c -2px 2px 4px 0px inset;
+      border-radius: calc(var(--height) / 2);
+    }
+
+    .loading-bar {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      --height: 20px;
+      width: 0%;
+      height: var(--height);
+      overflow: hidden;
+      background: linear-gradient(
+        0deg,
+        rgba(222, 74, 15, 1) 0%,
+        rgba(249, 199, 79, 1) 100%
+      );
+      border-radius: calc(var(--height) / 2);
+      animation: loading 4s ease-out infinite;
+    }
+
+    .white-bars-container {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .white-bar {
+      background: linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(255, 255, 255, 0) 70%
+      );
+      width: 10px;
+      height: 45px;
+      opacity: 0.3;
+      transform: rotate(45deg);
+    }
+
+    @keyframes loading {
+      0% {
+        width: 0;
+      }
+      80% {
+        width: 100%;
+      }
+      100% {
+        width: 100%;
+      }
+    }
+
+    @keyframes blink {
+      0%, 100% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="loader">
+  <div class="loading-text">
+    Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+  </div>
+  <div class="loading-bar-background">
+    <div class="loading-bar">
+      <div class="white-bars-container">
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+        <div class="white-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Firebase configuration - আপনার নিজের config এখানে বসাবেন
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // Firebase initialize
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Telegram user data process function
+  async function processTelegramUser() {
+    try {
+      // Check if Telegram WebApp API is available
+      if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        const user = tg.initDataUnsafe.user;
+
+        if (user) {
+          console.log("Telegram user data:", user);
+
+          // Prepare user data for database
+          const userData = {
+            id: user.id,
+            username: user.username || '',
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            photo_url: user.photo_url || '',
+            language_code: user.language_code || '',
+            is_premium: user.is_premium || false,
+            is_bot: user.is_bot || false,
+            last_login: new Date(),
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
+          };
+
+          // Check if user already exists in database
+          const userDoc = await db.collection('users').doc(user.id.toString()).get();
+          
+          if (userDoc.exists) {
+            // Update existing user
+            await db.collection('users').doc(user.id.toString()).update({
+              ...userData,
+              updated_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log("User profile updated in database");
+          } else {
+            // Create new user
+            await db.collection('users').doc(user.id.toString()).set(userData);
+            console.log("New user profile created in database");
+          }
+
+          // Encode user data for URL parameter
+          const encodedUser = encodeURIComponent(JSON.stringify(userData));
+          
+          // Redirect to main page with user data
+          setTimeout(function() {
+            window.location.href = `ws-main-page.html?user=${encodedUser}`;
+          }, 2700);
+
+        } else {
+          console.error("No user data available from Telegram");
+          // Fallback redirect without user data
+          setTimeout(function() {
+            window.location.href = "ws-main-page.html";
+          }, 2700);
+        }
+      } else {
+        console.error("Telegram WebApp API not detected");
+        // Fallback for testing outside Telegram
+        setTimeout(function() {
+          window.location.href = "ws-main-page.html";
+        }, 2700);
+      }
+    } catch (error) {
+      console.error("Error processing Telegram user:", error);
+      // Error fallback redirect
+      setTimeout(function() {
+        window.location.href = "ws-main-page.html";
+      }, 2700);
+    }
+  }
+
+  // Start processing when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Expand Telegram WebApp if available
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+      window.Telegram.WebApp.expand();
+      window.Telegram.WebApp.enableClosingConfirmation();
+    }
+    
+    // Process Telegram user data
+    processTelegramUser();
+  });
+</script>
+
+</body>
+</html>

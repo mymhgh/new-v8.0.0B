@@ -6,11 +6,11 @@
   <title>Submit Work</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
+    /* আপনার existing CSS styles */
     :root {
       --primary: #4361ee;
       --secondary: #3f37c9;
@@ -178,7 +178,6 @@
       font-size: 15px;
       color: rgb(94, 91, 91);
       opacity: 0.8;
-
     }
 
     .card {
@@ -617,7 +616,7 @@
     <div class="version">V7.947</div>
   </div>
 
- <script>
+  <script>
     // URL parameter থেকে user data পড়ার function
     function getUserDataFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -681,9 +680,8 @@
           document.getElementById('userUsername').textContent = '@' + userData.username;
         }
 
-        // সকল social platform links এ user data যোগ করুন
+        // সকল social platform links এ user data যোগ করুন (শুধুমাত্র error page以外)
         document.querySelectorAll('.social-item').forEach(link => {
-          const platform = link.getAttribute('data-platform');
           const currentHref = link.getAttribute('href');
           
           if (currentHref && !currentHref.includes('error.html')) {
